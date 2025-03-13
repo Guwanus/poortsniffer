@@ -7,13 +7,13 @@ def scan_port(ip, port):
         s.settimeout(0.5)
         return port if s.connect_ex((ip, port)) == 0 else None
 
-def port_sniffer(ip, port_range=(1, 1024), max_threads=100):
+def port_sniffer(ip, start_port=1, end_port=1024, max_threads=1000):
     """Scant de opgegeven poorten op het IP-adres met multi-threading."""
     open_ports = []
-    print(f"Scannen van {ip} voor open poorten...")
+    print(f"Scannen van {ip} voor open poorten ({start_port}-{end_port})...")
 
     with concurrent.futures.ThreadPoolExecutor(max_threads) as executor:
-        futures = {executor.submit(scan_port, ip, port): port for port in range(port_range[0], port_range[1] + 1)}
+        futures = {executor.submit(scan_port, ip, port): port for port in range(start_port, end_port + 1)}
         for future in concurrent.futures.as_completed(futures):
             port = future.result()
             if port:
@@ -27,4 +27,10 @@ def port_sniffer(ip, port_range=(1, 1024), max_threads=100):
 
 if __name__ == "__main__":
     target_ip = input("Voer het IP-adres in dat je wilt scannen: ")
-    port_sniffer(target_ip)
+    start_port = int(input("Voer de startpoort in: ") or 1)
+    end_port = int(input("Voer de eindpoort in: ") or 1024)
+    
+    if start_port > end_port or start_port < 1 or end_port > 65535:
+        print("Ongeldig poortbereik. Voer een geldig bereik in (1-65535).")
+    else:
+        port_sniffer(target_ip, start_port, end_port)
