@@ -1,11 +1,13 @@
 import socket
 import concurrent.futures
 import pyodbc
-from datetime import datetime
+from flask import Flask, render_template, request
+
+app = Flask(__name__)
 
 # Database configuratie
-DB_SERVER = 'GUWAN\SQLEXPRESS'
-DB_DATABASE = 'poortsniffer'
+DB_SERVER = 'GUWAN\SQLEXPRESS'   
+DB_DATABASE = 'poortsniffer' 
 DB_USERNAME = 'snifferwriteonly'
 DB_PASSWORD = 'Welkom01'
 
@@ -31,8 +33,8 @@ def save_to_database(ip, port):
         try:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO OpenPorts (ip_address, port, scan_time) VALUES (?, ?, ?)",
-                (ip, port, datetime.now())
+                "INSERT INTO OpenPorts (ip_address, port, scan_time) VALUES (?, ?, GETDATE())",
+                (ip, port)
             )
             conn.commit()
             cursor.close()
@@ -50,7 +52,7 @@ def scan_port(ip, port):
             return port
     return None
 
-def port_sniffer(ip, start_port=1, end_port=1024, max_threads=1000):
+def port_sniffer(ip, start_port=1, end_port=65535, max_threads=1000):
     """Scant de opgegeven poorten op het IP-adres en slaat open poorten op in MSSQL."""
     open_ports = []
     print(f"Scannen van {ip} voor open poorten ({start_port}-{end_port})...")
@@ -60,20 +62,24 @@ def port_sniffer(ip, start_port=1, end_port=1024, max_threads=1000):
         for future in concurrent.futures.as_completed(futures):
             port = future.result()
             if port:
-                print(f"Poort {port} is open.")
                 open_ports.append(port)
 
-    if open_ports:
-        print("Open poorten:", open_ports)
-    else:
-        print("Geen open poorten gevonden.")
+    return open_ports
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    results = None
+    if request.method == "POST":
+        target_ip = request.form["ip"]
+        start_port = int(request.form["start_port"])
+        end_port = int(request.form["end_port"])
+
+        if start_port > end_port or start_port < 1 or end_port > 65535:
+            results = "Ongeldig poortbereik. Voer een geldig bereik in (1-65535)."
+        else:
+            results = port_sniffer(target_ip, start_port, end_port)
+
+    return render_template("index.html", results=results)
 
 if __name__ == "__main__":
-    target_ip = input("Voer het IP-adres in dat je wilt scannen: ")
-    start_port = int(input("Voer de startpoort in: ") or 1)
-    end_port = int(input("Voer de eindpoort in: ") or 1024)
-
-    if start_port > end_port or start_port < 1 or end_port > 65535:
-        print("Ongeldig poortbereik. Voer een geldig bereik in (1-65535).")
-    else:
-        port_sniffer(target_ip, start_port, end_port)
+    app.run(debug=True)

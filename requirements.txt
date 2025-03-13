@@ -1,2 +1,2 @@
-https://pypi.org/project/pyodbc/
-python -m pip install flask flask-wtf pyodbc
+Flask==2.2.3
+pyodbc==4.0.32
