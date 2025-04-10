@@ -2,24 +2,19 @@ import socket
 import concurrent.futures
 import pyodbc
 from flask import Flask, render_template, request
+from config import DB_CONFIG
 
 app = Flask(__name__)
-
-# Database configuratie
-DB_SERVER = 'GUWAN\SQLEXPRESS'   
-DB_DATABASE = 'poortsniffer' 
-DB_USERNAME = 'snifferwriteonly'
-DB_PASSWORD = 'Welkom01'
 
 def connect_database():
     """Maakt verbinding met de MSSQL-database."""
     try:
         conn = pyodbc.connect(
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-            f"SERVER={DB_SERVER};"
-            f"DATABASE={DB_DATABASE};"
-            f"UID={DB_USERNAME};"
-            f"PWD={DB_PASSWORD}"
+            f"DRIVER={{{DB_CONFIG['driver']}}};"
+            f"SERVER={DB_CONFIG['server']};"
+            f"DATABASE={DB_CONFIG['database']};"
+            f"UID={DB_CONFIG['username']};"
+            f"PWD={DB_CONFIG['password']}"
         )
         return conn
     except Exception as e:
